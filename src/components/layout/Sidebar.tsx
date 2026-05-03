@@ -17,23 +17,23 @@ export function Sidebar() {
 
   return (
     <aside
-      className={`h-screen bg-card border-l border-border flex flex-col transition-all duration-300 ${
+      className={`h-screen bg-sidebar border-l border-sidebar-border flex flex-col transition-all duration-300 ${
         collapsed ? "w-16" : "w-64"
       }`}
     >
       {/* Logo */}
-      <div className="h-16 flex items-center justify-between px-4 border-b border-border">
+      <div className="h-16 flex items-center justify-between px-4 border-b border-sidebar-border">
         {!collapsed && (
-          <span className="text-xl font-bold text-foreground tracking-tight">JONJON</span>
+          <span className="text-xl font-bold text-sidebar-foreground tracking-tight">JONJON</span>
         )}
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="p-1.5 rounded-lg hover:bg-muted transition-colors"
+          className="p-1.5 rounded-lg hover:bg-sidebar-accent transition-colors"
         >
           {collapsed ? (
-            <ChevronLeft className="w-4 h-4 text-muted-foreground" />
+            <ChevronLeft className="w-4 h-4 text-sidebar-foreground/60" />
           ) : (
-            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+            <ChevronRight className="w-4 h-4 text-sidebar-foreground/60" />
           )}
         </button>
       </div>
@@ -45,32 +45,14 @@ export function Sidebar() {
             const isActive = pathname === item.url;
             const Icon = item.icon;
 
-            if (item.comingSoon) {
-              return (
-                <li key={item.url}>
-                  <NavLink
-                    to={item.url}
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
-                      isActive
-                        ? "bg-accent/10 text-accent font-medium"
-                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                    }`}
-                  >
-                    <Icon className="w-5 h-5 shrink-0" />
-                    {!collapsed && <span>{item.title}</span>}
-                  </NavLink>
-                </li>
-              );
-            }
-
             return (
               <li key={item.url}>
                 <NavLink
                   to={item.url}
                   className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
                     isActive
-                      ? "bg-accent/10 text-accent font-medium"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                      ? "bg-sidebar-accent text-sidebar-primary font-medium"
+                      : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
                   }`}
                 >
                   <Icon className="w-5 h-5 shrink-0" />
@@ -83,10 +65,10 @@ export function Sidebar() {
       </nav>
 
       {/* Logout */}
-      <div className="p-2 border-t border-border">
+      <div className="p-2 border-t border-sidebar-border">
         <button
           onClick={logout}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-sidebar-foreground/60 hover:bg-red-500/10 hover:text-red-400 transition-colors"
         >
           <LogOut className="w-5 h-5 shrink-0" />
           {!collapsed && <span>התנתקות</span>}
