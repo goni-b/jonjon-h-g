@@ -1,0 +1,108 @@
+@import url('https://fonts.googleapis.com/css2?family=Assistant:wght@200;300;400;500;600;700;800&family=Heebo:wght@100;200;300;400;500;600;700;800;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Primary: #111111 */
+    --background: 36 33% 96%;
+    --foreground: 0 0% 7%;
+
+    /* Surface: #FFFFFF */
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 7%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 7%;
+
+    /* Primary: #111111 */
+    --primary: 0 0% 7%;
+    --primary-foreground: 36 33% 96%;
+
+    /* Secondary: #2B2B2B */
+    --secondary: 0 0% 17%;
+    --secondary-foreground: 36 33% 96%;
+
+    /* Muted / subtle backgrounds */
+    --muted: 34 23% 92%;
+    --muted-foreground: 30 5% 41%;
+
+    /* Accent: #C8A96A */
+    --accent: 38 46% 60%;
+    --accent-foreground: 0 0% 7%;
+
+    /* Accent Light: #EFE3CC — used via accent-light utility */
+    --accent-light: 36 49% 87%;
+
+    /* Destructive / Danger: #DC2626 */
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    /* Success: #16A34A */
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+
+    /* Warning: #D97706 */
+    --warning: 38 92% 44%;
+    --warning-foreground: 0 0% 7%;
+
+    /* Info: #2563EB */
+    --info: 217 91% 60%;
+    --info-foreground: 0 0% 100%;
+
+    /* Border: #E6DED2 */
+    --border: 33 27% 86%;
+    --input: 33 27% 86%;
+    --ring: 38 46% 60%;
+
+    --radius: 0.75rem;
+
+    /* Sidebar — dark premium */
+    --sidebar-background: 0 0% 7%;
+    --sidebar-foreground: 36 33% 96%;
+    --sidebar-primary: 38 46% 60%;
+    --sidebar-primary-foreground: 0 0% 7%;
+    --sidebar-accent: 0 0% 14%;
+    --sidebar-accent-foreground: 36 33% 96%;
+    --sidebar-border: 0 0% 18%;
+    --sidebar-ring: 38 46% 60%;
+
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.04);
+    --shadow-md: 0 4px 12px -2px rgb(0 0 0 / 0.06), 0 2px 4px -2px rgb(0 0 0 / 0.04);
+    --shadow-lg: 0 12px 24px -4px rgb(0 0 0 / 0.08), 0 4px 8px -4px rgb(0 0 0 / 0.04);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    direction: rtl;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: "Ploni", "Assistant", "Heebo", sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: "Ploni", "Assistant", "Heebo", sans-serif;
+  }
+
+  input, textarea, select, button {
+    font-family: inherit;
+  }
+}
+
+@layer utilities {
+  .shadow-card {
+    box-shadow: var(--shadow-md);
+  }
+  .shadow-card-hover {
+    box-shadow: var(--shadow-lg);
+  }
+}
