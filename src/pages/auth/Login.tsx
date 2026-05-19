@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Link } from "react-router-dom";
 
+import { Logo } from "@/components/ui/Logo";
+
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -22,7 +24,8 @@ export default function Login() {
 
   return (
     <AuthCard>
-      <div className="text-center mb-6">
+      <div className="flex flex-col items-center text-center mb-6">
+        <Logo className="mb-4 transform scale-125" />
         <h2 className="text-xl font-bold text-foreground mb-2">ברוכים הבאים ל־JONJON</h2>
         <p className="text-sm text-muted-foreground">
           מערכת ניהול הלקוחות, התוכן והתהליכים שלכם במקום אחד.

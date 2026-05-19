@@ -4,6 +4,7 @@ import { getNavigation } from "@/data/navigation";
 import { getRoleCategory } from "@/types/user";
 import { LogOut, ChevronRight, ChevronLeft } from "lucide-react";
 import { useState } from "react";
+import { Logo } from "@/components/ui/Logo";
 
 export function Sidebar() {
   const { user, logout } = useAuth();
@@ -18,24 +19,26 @@ export function Sidebar() {
   return (
     <aside
       className={`h-screen bg-sidebar border-l border-sidebar-border flex flex-col transition-all duration-300 ${
-        collapsed ? "w-16" : "w-64"
+        collapsed ? "w-20" : "w-64"
       }`}
     >
       {/* Logo */}
-      <div className="h-16 flex items-center justify-between px-4 border-b border-sidebar-border">
+      <div className="h-20 flex items-center justify-between px-4 border-b border-sidebar-border overflow-hidden shrink-0">
+        <div className={`transition-all duration-300 ${collapsed ? "mx-auto" : "scale-90 origin-right"}`}>
+          <Logo iconOnly={collapsed} />
+        </div>
         {!collapsed && (
-          <span className="text-xl font-bold text-sidebar-foreground tracking-tight">JONJON</span>
+          <button
+            onClick={() => setCollapsed(!collapsed)}
+            className="p-1.5 rounded-lg hover:bg-sidebar-accent transition-colors"
+          >
+            {collapsed ? (
+              <ChevronLeft className="w-4 h-4 text-sidebar-foreground/60" />
+            ) : (
+              <ChevronRight className="w-4 h-4 text-sidebar-foreground/60" />
+            )}
+          </button>
         )}
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          className="p-1.5 rounded-lg hover:bg-sidebar-accent transition-colors"
-        >
-          {collapsed ? (
-            <ChevronLeft className="w-4 h-4 text-sidebar-foreground/60" />
-          ) : (
-            <ChevronRight className="w-4 h-4 text-sidebar-foreground/60" />
-          )}
-        </button>
       </div>
 
       {/* Navigation */}
