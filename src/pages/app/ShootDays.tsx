@@ -29,7 +29,8 @@ import {
   ChevronLeft, Search, ExternalLink, CalendarDays, CheckCircle2,
   MessageCircle, Clock, GripVertical, Send, CornerDownRight, Folder,
   Check, AlertCircle, ArrowRight, Share2, Bold, Italic, Underline as UnderlineIcon,
-  AlignRight, AlignLeft, AlignCenter, List, ListOrdered, AtSign, ThumbsUp, Reply, Unlock,
+  AlignRight, AlignLeft, AlignCenter, List, ListOrdered, ThumbsUp, Reply, Unlock,
+  Heading1, Heading2, Heading3, Type, Undo, Redo, Code, Save, ChevronDown
 } from "lucide-react";
 import { toast } from "sonner";
 import { useEditor, EditorContent } from "@tiptap/react";
@@ -37,9 +38,38 @@ import { BubbleMenu } from "@tiptap/react/menus";
 import StarterKit from "@tiptap/starter-kit";
 import Underline from "@tiptap/extension-underline";
 import TextAlign from "@tiptap/extension-text-align";
-import Mention from "@tiptap/extension-mention";
+import { TextStyle } from "@tiptap/extension-text-style";
+import { Extension } from "@tiptap/core";
 import { CommentMark } from "@/components/editor/CommentMark";
-import { mentionSuggestion } from "@/components/editor/mentionSuggestion";
+
+// ─── Font Size TipTap Extension ───────────────────────────────────────────────
+
+const FONT_SIZES = [6,8,9,10,11,12,14,16,18,20,22,24,28,32,36,40,44,48,52,56,60,64,68,72,76,80,84,88,92,96];
+
+const FontSizeExtension = Extension.create({
+  name: 'fontSize',
+  addOptions() { return { types: ['textStyle'] }; },
+  addGlobalAttributes() {
+    return [{
+      types: this.options.types,
+      attributes: {
+        fontSize: {
+          default: null,
+          parseHTML: el => el.style.fontSize?.replace(/['"]+/g, '') || null,
+          renderHTML: attrs => attrs.fontSize ? { style: `font-size: ${attrs.fontSize}` } : {},
+        },
+      },
+    }];
+  },
+  addCommands() {
+    return {
+      setFontSize: (size: string) => ({ chain }: { chain: () => any }) =>
+        chain().setMark('textStyle', { fontSize: size }).run(),
+      unsetFontSize: () => ({ chain }: { chain: () => any }) =>
+        chain().setMark('textStyle', { fontSize: null }).removeEmptyTextStyle().run(),
+    } as any;
+  },
+});
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -931,27 +961,41 @@ function ScriptDocumentView({
   const [activeCommentId, setActiveCommentId] = useState<string | null>(null);
   const [hoveredCommentId, setHoveredCommentId] = useState<string | null>(null);
   const [pendingHighlightId, setPendingHighlightId] = useState<string | null>(null);
+
+  // Auto-save indicator
+  const [saveStatus, setSaveStatus] = useState<'saved' | 'saving'>('saved');
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   // Can this user edit the script?
   const canEditScript = ["content_writer", "social_manager", "team_manager", "admin"].includes(currentUserRole);
+
+  const [fontSizeOpen, setFontSizeOpen] = useState(false);
+  const [currentFontSize, setCurrentFontSize] = useState<string>('16');
+  const fontSizeRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (fontSizeRef.current && !fontSizeRef.current.contains(e.target as Node)) setFontSizeOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
 
   const editor = useEditor({
     extensions: [
       StarterKit,
       CommentMark,
       Underline,
+      TextStyle,
+      FontSizeExtension,
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
-      Mention.configure({
-        HTMLAttributes: {
-          class: 'mention bg-primary/10 text-primary px-1 rounded-sm font-medium',
-        },
-        suggestion: mentionSuggestion,
-      }),
     ],
     content: script.content.replace(/\n/g, '<br>'), // Convert plain text newlines to breaks if needed
     editable: canEditScript,
     onUpdate: ({ editor }) => {
+      setSaveStatus('saving');
       onScriptUpdate(script.id, editor.getHTML());
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+      saveTimer.current = setTimeout(() => setSaveStatus('saved'), 800);
     }
   });
 
@@ -1076,37 +1120,133 @@ function ScriptDocumentView({
     day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit",
   });
 
-  const btnCls = "p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50";
+  const btnCls = "h-8 w-8 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors disabled:opacity-40 disabled:cursor-not-allowed";
+  const btnActive = "bg-accent text-foreground";
+  const sep = <div className="w-px h-5 bg-border mx-1 shrink-0" />;
 
   return (
     <div className="fixed inset-0 z-50 bg-background flex flex-col animate-fade-in" dir="rtl">
       {/* ── Toolbar ── */}
-      <div className="flex items-center gap-2 px-4 py-2 border-b border-border bg-background shrink-0 flex-wrap">
-        <button type="button" onClick={onBack} className="flex items-center gap-1.5 text-sm font-medium hover:bg-muted px-3 py-1.5 rounded-lg transition-colors">
-          <ArrowRight className="w-4 h-4" /> חזרה לתסריטים
+      <div className="flex items-center gap-1 px-3 py-1.5 border-b border-border bg-background shrink-0 overflow-x-auto">
+        <button type="button" onClick={onBack} title="חזרה לתסריטים"
+          className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent px-3 py-1.5 rounded-lg transition-colors shrink-0">
+          <ArrowRight className="w-4 h-4" /> חזרה
         </button>
 
-        <div className="w-px h-5 bg-border mx-1" />
+        {sep}
 
-        {/* TipTap Formatting */}
-        <div className="flex items-center gap-0.5 text-muted-foreground">
-          <button type="button" disabled={!editor || !canEditScript} onClick={() => editor?.chain().focus().toggleBold().run()} className={`${btnCls} ${editor?.isActive('bold') ? 'bg-muted text-foreground' : ''}`}><Bold className="w-4 h-4" /></button>
-          <button type="button" disabled={!editor || !canEditScript} onClick={() => editor?.chain().focus().toggleItalic().run()} className={`${btnCls} ${editor?.isActive('italic') ? 'bg-muted text-foreground' : ''}`}><Italic className="w-4 h-4" /></button>
-          <button type="button" disabled={!editor || !canEditScript} onClick={() => editor?.chain().focus().toggleUnderline().run()} className={`${btnCls} ${editor?.isActive('underline') ? 'bg-muted text-foreground' : ''}`}><UnderlineIcon className="w-4 h-4" /></button>
-          <span className="w-px h-4 bg-border mx-1" />
-          <button type="button" disabled={!editor || !canEditScript} onClick={() => editor?.chain().focus().toggleBulletList().run()} className={`${btnCls} ${editor?.isActive('bulletList') ? 'bg-muted text-foreground' : ''}`}><List className="w-4 h-4" /></button>
-          <button type="button" disabled={!editor || !canEditScript} onClick={() => editor?.chain().focus().toggleOrderedList().run()} className={`${btnCls} ${editor?.isActive('orderedList') ? 'bg-muted text-foreground' : ''}`}><ListOrdered className="w-4 h-4" /></button>
-          <span className="w-px h-4 bg-border mx-1" />
-          <button type="button" disabled={!editor || !canEditScript} onClick={() => editor?.chain().focus().setTextAlign('right').run()} className={`${btnCls} ${editor?.isActive({ textAlign: 'right' }) ? 'bg-muted text-foreground' : ''}`}><AlignRight className="w-4 h-4" /></button>
-          <button type="button" disabled={!editor || !canEditScript} onClick={() => editor?.chain().focus().setTextAlign('center').run()} className={`${btnCls} ${editor?.isActive({ textAlign: 'center' }) ? 'bg-muted text-foreground' : ''}`}><AlignCenter className="w-4 h-4" /></button>
-          <button type="button" disabled={!editor || !canEditScript} onClick={() => editor?.chain().focus().setTextAlign('left').run()} className={`${btnCls} ${editor?.isActive({ textAlign: 'left' }) ? 'bg-muted text-foreground' : ''}`}><AlignLeft className="w-4 h-4" /></button>
-          <span className="w-px h-4 bg-border mx-1" />
-          <button type="button" disabled={!editor || !canEditScript} onClick={() => editor?.chain().focus().insertContent('@').run()} className={btnCls}><AtSign className="w-4 h-4" /></button>
+        {/* Undo / Redo */}
+        <button type="button" title="בטל (Ctrl+Z)" disabled={!editor || !canEditScript || !editor?.can().undo()}
+          onClick={() => editor?.chain().focus().undo().run()}
+          className={btnCls}><Undo className="w-4 h-4" /></button>
+        <button type="button" title="בצע שוב (Ctrl+Y)" disabled={!editor || !canEditScript || !editor?.can().redo()}
+          onClick={() => editor?.chain().focus().redo().run()}
+          className={btnCls}><Redo className="w-4 h-4" /></button>
+
+        {sep}
+
+        {/* Headings */}
+        <button type="button" title="כותרת 1" disabled={!editor || !canEditScript}
+          onClick={() => editor?.chain().focus().toggleHeading({ level: 1 }).run()}
+          className={`${btnCls} ${editor?.isActive('heading', { level: 1 }) ? btnActive : ''}`}><Heading1 className="w-4 h-4" /></button>
+        <button type="button" title="כותרת 2" disabled={!editor || !canEditScript}
+          onClick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()}
+          className={`${btnCls} ${editor?.isActive('heading', { level: 2 }) ? btnActive : ''}`}><Heading2 className="w-4 h-4" /></button>
+        <button type="button" title="כותרת 3" disabled={!editor || !canEditScript}
+          onClick={() => editor?.chain().focus().toggleHeading({ level: 3 }).run()}
+          className={`${btnCls} ${editor?.isActive('heading', { level: 3 }) ? btnActive : ''}`}><Heading3 className="w-4 h-4" /></button>
+        <button type="button" title="פסקה רגילה" disabled={!editor || !canEditScript}
+          onClick={() => editor?.chain().focus().setParagraph().run()}
+          className={`${btnCls} ${editor?.isActive('paragraph') ? btnActive : ''}`}><Type className="w-4 h-4" /></button>
+
+        {sep}
+
+        {/* Font Size Dropdown */}
+        <div className="relative shrink-0" ref={fontSizeRef}>
+          <button type="button" title="גודל גופן" disabled={!editor || !canEditScript}
+            onClick={() => setFontSizeOpen(v => !v)}
+            className={`${btnCls} w-auto px-2 gap-1 flex items-center text-xs font-mono min-w-[52px]`}>
+            <span>{currentFontSize}px</span>
+            <ChevronDown className="w-3 h-3" />
+          </button>
+          {fontSizeOpen && (
+            <div className="absolute top-full mt-1 right-0 z-50 bg-background border border-border rounded-lg shadow-xl overflow-y-auto max-h-64 min-w-[72px]">
+              {FONT_SIZES.map(size => (
+                <button key={size} type="button"
+                  onClick={() => {
+                    (editor?.chain().focus() as any).setFontSize(`${size}px`).run();
+                    setCurrentFontSize(String(size));
+                    setFontSizeOpen(false);
+                  }}
+                  className={`w-full text-right px-3 py-1.5 text-xs hover:bg-accent transition-colors ${currentFontSize === String(size) ? 'bg-accent font-bold text-foreground' : 'text-muted-foreground'}`}>
+                  {size}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
-        <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full border ${sc.chipCls} ml-1`}>{sc.label}</span>
+        {sep}
 
-        <div className="mr-auto flex items-center gap-2">
+        {/* Text formatting */}
+        <button type="button" title="מודגש (Ctrl+B)" disabled={!editor || !canEditScript}
+          onClick={() => editor?.chain().focus().toggleBold().run()}
+          className={`${btnCls} ${editor?.isActive('bold') ? btnActive : ''}`}><Bold className="w-4 h-4" /></button>
+        <button type="button" title="נטוי (Ctrl+I)" disabled={!editor || !canEditScript}
+          onClick={() => editor?.chain().focus().toggleItalic().run()}
+          className={`${btnCls} ${editor?.isActive('italic') ? btnActive : ''}`}><Italic className="w-4 h-4" /></button>
+        <button type="button" title="קו תחתון (Ctrl+U)" disabled={!editor || !canEditScript}
+          onClick={() => editor?.chain().focus().toggleUnderline().run()}
+          className={`${btnCls} ${editor?.isActive('underline') ? btnActive : ''}`}><UnderlineIcon className="w-4 h-4" /></button>
+        <button type="button" title="קוד (Ctrl+E)" disabled={!editor || !canEditScript}
+          onClick={() => editor?.chain().focus().toggleCode().run()}
+          className={`${btnCls} ${editor?.isActive('code') ? btnActive : ''}`}><Code className="w-4 h-4" /></button>
+
+        {sep}
+
+        {/* Lists */}
+        <button type="button" title="רשימת נקודות" disabled={!editor || !canEditScript}
+          onClick={() => editor?.chain().focus().toggleBulletList().run()}
+          className={`${btnCls} ${editor?.isActive('bulletList') ? btnActive : ''}`}><List className="w-4 h-4" /></button>
+        <button type="button" title="רשימה ממוספרת" disabled={!editor || !canEditScript}
+          onClick={() => editor?.chain().focus().toggleOrderedList().run()}
+          className={`${btnCls} ${editor?.isActive('orderedList') ? btnActive : ''}`}><ListOrdered className="w-4 h-4" /></button>
+
+        {sep}
+
+        {/* Alignment */}
+        <button type="button" title="יישור לימין" disabled={!editor || !canEditScript}
+          onClick={() => editor?.chain().focus().setTextAlign('right').run()}
+          className={`${btnCls} ${editor?.isActive({ textAlign: 'right' }) ? btnActive : ''}`}><AlignRight className="w-4 h-4" /></button>
+        <button type="button" title="יישור למרכז" disabled={!editor || !canEditScript}
+          onClick={() => editor?.chain().focus().setTextAlign('center').run()}
+          className={`${btnCls} ${editor?.isActive({ textAlign: 'center' }) ? btnActive : ''}`}><AlignCenter className="w-4 h-4" /></button>
+        <button type="button" title="יישור לשמאל" disabled={!editor || !canEditScript}
+          onClick={() => editor?.chain().focus().setTextAlign('left').run()}
+          className={`${btnCls} ${editor?.isActive({ textAlign: 'left' }) ? btnActive : ''}`}><AlignLeft className="w-4 h-4" /></button>
+
+        {sep}
+
+        {/* Add Comment — visible to all roles */}
+        <button type="button" title="הוסף הערה"
+          onClick={() => { setShowInput(true); setReplyingTo(null); setReplyText(""); }}
+          className={`${btnCls} text-amber-500 hover:text-amber-600 hover:bg-amber-50`}>
+          <MessageCircle className="w-4 h-4" />
+        </button>
+
+        {/* Auto-save indicator */}
+        {canEditScript && (
+          <div className="flex items-center gap-1 text-[11px] mr-2 shrink-0 text-muted-foreground">
+            {saveStatus === 'saving'
+              ? <><Save className="w-3 h-3 animate-pulse" />שומר...</>
+              : <><Check className="w-3 h-3 text-green-500" />נשמר</>}
+          </div>
+        )}
+
+        {sep}
+        <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full border ${sc.chipCls} shrink-0`}>{sc.label}</span>
+
+        <div className="mr-auto flex items-center gap-2 shrink-0">
           {canManage && script.status === "draft" && (
             <Button size="sm" onClick={() => onStatusChange(script.id, "pending_approval")} className="gap-1.5 h-8 text-xs"><Send className="w-3 h-3" />שלח לאישור</Button>
           )}
@@ -1158,8 +1298,17 @@ function ScriptDocumentView({
               {/* TipTap Editor */}
               <div className="px-10 py-8 prose prose-slate max-w-none min-h-[500px] outline-none relative" dir="rtl">
                  <style>{`
+                   .ProseMirror { outline: none !important; border: none !important; box-shadow: none !important; }
+                   .ProseMirror:focus { outline: none !important; }
+                   .ProseMirror ul { list-style-type: disc !important; padding-right: 1.5rem !important; margin: 0.5rem 0 !important; }
+                   .ProseMirror ol { list-style-type: decimal !important; padding-right: 1.5rem !important; margin: 0.5rem 0 !important; }
+                   .ProseMirror li { display: list-item !important; }
+                   .ProseMirror li p { margin: 0 !important; }
+                   .ProseMirror h1 { font-size: 2em; font-weight: 700; margin: 0.67em 0; }
+                   .ProseMirror h2 { font-size: 1.5em; font-weight: 600; margin: 0.75em 0; }
+                   .ProseMirror h3 { font-size: 1.25em; font-weight: 600; margin: 0.83em 0; }
                    mark[data-comment-id] {
-                     background-color: #fef3c7; /* bg-amber-100 */
+                     background-color: #fef3c7;
                      border-radius: 2px;
                      transition: all 0.2s cubic-bezier(0.23, 1, 0.32, 1);
                      cursor: pointer;
@@ -1167,12 +1316,12 @@ function ScriptDocumentView({
                    }
                    mark[data-comment-id]:hover,
                    .hovering-comment mark[data-comment-id="${hoveredCommentId}"] {
-                     background-color: #fde68a !important; /* bg-amber-200 */
-                     border-bottom-color: #f59e0b; /* amber-500 */
+                     background-color: #fde68a !important;
+                     border-bottom-color: #f59e0b;
                    }
                    .active-comment mark[data-comment-id="${activeCommentId}"] {
-                     background-color: #fcd34d !important; /* bg-amber-300 */
-                     border-bottom-color: #d97706; /* amber-600 */
+                     background-color: #fcd34d !important;
+                     border-bottom-color: #d97706;
                    }
                  `}</style>
                  {editor && (
@@ -1347,7 +1496,19 @@ export default function ShootDays() {
   const [videoFiles,   setVideoFiles]   = useState<VideoFile[]>(mockVideoFiles);
 
   const [activeTab,    setActiveTab]    = useState<TabId>("shoots");
-  const [shootFilter,  setShootFilter]  = useState<string | null>(null); // filter scripts/videos by shoot day
+  const [shootFilter,  setShootFilter]  = useState<string | null>(null);
+
+  // Dialog states
+  const [isNewShootDayOpen, setIsNewShootDayOpen] = useState(false);
+  const [isNewScriptOpen, setIsNewScriptOpen] = useState(false);
+  const [newShootClient, setNewShootClient] = useState("");
+  const [newShootDate, setNewShootDate] = useState("");
+  const [newShootLoc, setNewShootLoc] = useState("");
+  const [newShootNotes, setNewShootNotes] = useState("");
+  
+  const [newScriptTitle, setNewScriptTitle] = useState("");
+  const [newScriptClient, setNewScriptClient] = useState("");
+  const [newScriptDay, setNewScriptDay] = useState("");
   const [search,       setSearch]       = useState("");
 
   const [selectedDay,    setSelectedDay]    = useState<ShootDay | null>(null);
@@ -1415,6 +1576,54 @@ export default function ShootDays() {
     setSelectedScript((p) => p?.id === id ? { ...p, content } : p);
   }, []);
 
+  const handleCreateShootDay = useCallback(() => {
+    if (!newShootClient || !newShootDate) {
+      toast.error("יש למלא לקוח ותאריך");
+      return;
+    }
+    const clientName = MOCK_CLIENTS.find(c => c.id === newShootClient)?.name || "לקוח לא ידוע";
+    const newShoot: ShootDay = {
+      id: `sd${Date.now()}`,
+      clientId: newShootClient,
+      clientName,
+      date: newShootDate,
+      location: newShootLoc,
+      status: "planned",
+      crewIds: [user?.id || "1"],
+      notes: newShootNotes,
+      contentItems: []
+    };
+    setShootDays(p => [newShoot, ...p]);
+    setIsNewShootDayOpen(false);
+    setNewShootClient(""); setNewShootDate(""); setNewShootLoc(""); setNewShootNotes("");
+    toast.success("יום צילום נוצר בהצלחה!");
+  }, [newShootClient, newShootDate, newShootLoc, newShootNotes, user]);
+
+  const handleCreateScript = useCallback(() => {
+    if (!newScriptTitle || !newScriptClient || !newScriptDay) {
+      toast.error("יש למלא כותרת, לקוח ויום צילום");
+      return;
+    }
+    const clientName = MOCK_CLIENTS.find(c => c.id === newScriptClient)?.name || "לקוח לא ידוע";
+    const newScript: Script = {
+      id: `sc${Date.now()}`,
+      clientId: newScriptClient,
+      clientName,
+      shootDayId: newScriptDay,
+      title: newScriptTitle,
+      content: "<p>התחל לכתוב את התסריט כאן...</p>",
+      status: "draft",
+      createdById: user?.id || "1",
+      createdByName: user?.name || "יוצר",
+      createdAt: new Date().toISOString(),
+      comments: []
+    };
+    setScripts(p => [newScript, ...p]);
+    setIsNewScriptOpen(false);
+    setNewScriptTitle(""); setNewScriptClient(""); setNewScriptDay("");
+    toast.success("תסריט חדש נוצר בהצלחה!");
+  }, [newScriptTitle, newScriptClient, newScriptDay, user]);
+
   const handleVideoStatusChange = useCallback((id: string, status: VideoStatus) => {
     setVideoFiles((p) => p.map((v) => v.id === id ? { ...v, status } : v));
     setSelectedVideo((p) => p?.id === id ? { ...p, status } : p);
@@ -1468,12 +1677,12 @@ export default function ShootDays() {
           canManage ? (
             <div className="flex gap-2">
               {activeTab === "shoots" && (
-                <Button type="button" variant="outline" onClick={() => toast.info("פתיחת טופס: יום צילום (Sprint 4)")} className="gap-2">
+                <Button type="button" variant="outline" onClick={() => setIsNewShootDayOpen(true)} className="gap-2">
                   <Camera className="w-4 h-4" /> יום צילום
                 </Button>
               )}
               {activeTab === "scripts" && (
-                <Button type="button" onClick={() => toast.info("פתיחת טופס: תסריט חדש (Sprint 4)")} className="gap-2">
+                <Button type="button" onClick={() => setIsNewScriptOpen(true)} className="gap-2">
                   <FileText className="w-4 h-4" /> תסריט חדש
                 </Button>
               )}
@@ -1650,6 +1859,80 @@ export default function ShootDays() {
           />
         )}
       </div>
+
+      {/* ── Dialogs ── */}
+      <Dialog open={isNewShootDayOpen} onOpenChange={setIsNewShootDayOpen}>
+        <DialogContent dir="rtl" className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>יום צילום חדש</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>לקוח</Label>
+              <Select value={newShootClient} onValueChange={setNewShootClient}>
+                <SelectTrigger><SelectValue placeholder="בחר לקוח" /></SelectTrigger>
+                <SelectContent dir="rtl">
+                  {MOCK_CLIENTS.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>תאריך</Label>
+              <Input type="date" value={newShootDate} onChange={(e) => setNewShootDate(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>מיקום</Label>
+              <Input placeholder="לדוגמה: סטודיו תל אביב" value={newShootLoc} onChange={(e) => setNewShootLoc(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>הערות ומטרות</Label>
+              <Input placeholder="מה מצלמים היום?" value={newShootNotes} onChange={(e) => setNewShootNotes(e.target.value)} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsNewShootDayOpen(false)}>ביטול</Button>
+            <Button onClick={handleCreateShootDay}>צור יום צילום</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isNewScriptOpen} onOpenChange={setIsNewScriptOpen}>
+        <DialogContent dir="rtl" className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>תסריט חדש</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>כותרת התסריט</Label>
+              <Input placeholder="לדוגמה: רילס מבצע קיץ" value={newScriptTitle} onChange={(e) => setNewScriptTitle(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>לקוח</Label>
+              <Select value={newScriptClient} onValueChange={setNewScriptClient}>
+                <SelectTrigger><SelectValue placeholder="בחר לקוח" /></SelectTrigger>
+                <SelectContent dir="rtl">
+                  {MOCK_CLIENTS.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>יום צילום מקושר</Label>
+              <Select value={newScriptDay} onValueChange={setNewScriptDay} disabled={!newScriptClient}>
+                <SelectTrigger><SelectValue placeholder={newScriptClient ? "בחר יום צילום" : "קודם בחר לקוח"} /></SelectTrigger>
+                <SelectContent dir="rtl">
+                  {shootDays.filter(d => d.clientId === newScriptClient).map(d => (
+                    <SelectItem key={d.id} value={d.id}>{isoToHe(d.date)} - {d.location}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsNewScriptOpen(false)}>ביטול</Button>
+            <Button onClick={handleCreateScript}>התחל לכתוב</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
