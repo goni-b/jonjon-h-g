@@ -1590,6 +1590,7 @@ export default function ShootDays() {
       location: newShootLoc,
       status: "planned",
       crewIds: [user?.id || "1"],
+      crewNames: [user?.name || ""],
       notes: newShootNotes,
       contentIds: []
     };
