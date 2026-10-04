@@ -700,7 +700,7 @@ CTA (0:55–1:00):
         text: "מצוין! אפשר להוסיף את שם הסטודיו בהתחלה?",
         createdAt: new Date(Date.now() - 1000 * 60 * 60 * 70).toISOString(),
         resolved: true,
-        likes: 2,
+        likedBy: ["2", "3"],
         replies: []
       },
     ],

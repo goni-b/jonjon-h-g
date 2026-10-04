@@ -14,7 +14,7 @@ async function fetchStages(clientId: string): Promise<RoadmapStage[]> {
 
   if (error || !data || data.length === 0) return defaultRoadmapStages;
 
-  return data.map((row) => ({
+  return (data as any[]).map((row) => ({
     id: row.id,
     title: row.title,
     description: row.description ?? "",

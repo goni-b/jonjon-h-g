@@ -1325,7 +1325,7 @@ function ScriptDocumentView({
                    }
                  `}</style>
                  {editor && (
-                   <BubbleMenu editor={editor} tippyOptions={{ duration: 100, placement: 'top' }} className="bg-white shadow-lg border border-border/50 rounded-full px-1.5 py-1.5 flex gap-1 items-center animate-in zoom-in-95">
+                   <BubbleMenu editor={editor} className="bg-white shadow-lg border border-border/50 rounded-full px-1.5 py-1.5 flex gap-1 items-center animate-in zoom-in-95">
                      <button
                        onClick={() => {
                          const newId = `scc${Date.now()}`;
@@ -1591,7 +1591,7 @@ export default function ShootDays() {
       status: "planned",
       crewIds: [user?.id || "1"],
       notes: newShootNotes,
-      contentItems: []
+      contentIds: []
     };
     setShootDays(p => [newShoot, ...p]);
     setIsNewShootDayOpen(false);
